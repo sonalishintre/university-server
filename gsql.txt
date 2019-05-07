@@ -1,0 +1,29 @@
+# Write your query or mutation here
+
+# login api sql
+
+mutation{
+  loginUser(email:"zero@example.com",password:"password"){
+    token user{
+      name role id 
+    }
+  }
+}
+
+
+# get all users
+
+query{
+  users {
+    id name email role
+  }
+}
+
+
+#  create user
+
+mutation{
+  createUser(name:"test",email:"test@example.com",role:Admin, password:"password"){
+      name id
+  }
+}
