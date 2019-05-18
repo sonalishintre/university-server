@@ -17,8 +17,8 @@ const APP_SECRET =
 const typeDefs = gql`
   type Query {
     users: [User]
-    faculties: [Student]
-    students: [Faculty]
+    faculties: [Faculty]
+    students: [Student]
     student(email: String, id: ID): Student
     faculty(email: String, id: ID): Faculty
     courses: [Course]
@@ -80,6 +80,7 @@ const typeDefs = gql`
     role: Role!
     courses: [Course]
     assignments: [Assignment]
+    assignmentGrades:[AssignmentGrade]
     gpa: Float!
   }
   type Faculty implements User {
@@ -88,6 +89,7 @@ const typeDefs = gql`
     email: String!
     role: Role!
     courses: [Course]
+    assignmentGrades:[AssignmentGrade]
   }
   type Admin implements User {
     id: ID!
@@ -125,7 +127,7 @@ class UserSessions {
     return i === -1 ? null : this.userSessions[i];
   }
 
-  createSession(userID, secret, expiresIn = 60 * 10) {
+  createSession(userID, secret, expiresIn = 24*60 * 60) {
     const session = { id: this.nextID, userID: userID };
     this.nextID++;
 
@@ -177,21 +179,21 @@ class Users {
       {
         id: 4,
         name: "sam",
-        email: "admin@example.com",
+        email: "sam@example.com",
         role: "Faculty",
         ...this.genSaltHashPassword("password")
       },
       {
         id: 5,
         name: "shin",
-        email: "admin@example.com",
+        email: "shin@example.com",
         role: "Faculty",
         ...this.genSaltHashPassword("password")
       },
       {
         id: 6,
         name: "sam",
-        email: "admin@example.com",
+        email: "sam@example.com",
         role: "Student",
         ...this.genSaltHashPassword("password")
       }
@@ -325,9 +327,11 @@ class Courses {
   create(name, facultyID) {
     const faculty = this.users.fetchSingleUser("", facultyID, "Faculty");
     if (faculty === null) return null;
-    const new_course = { id: this.nextID, name: name, professor: faculty };
+
+    const new_course = { id: this.nextID, name: name, facultyId: facultyID,  professor: faculty, assignments:[] ,students:[]};
 
     this.courses.push(new_course);
+
 
     if (faculty.courses === undefined) {
       faculty.courses = [new_course];
@@ -335,7 +339,7 @@ class Courses {
       faculty.courses.push(new_course);
     }
     this.nextID++;
-
+    console.log(this.courses);
     return new_course;
   }
 
@@ -369,10 +373,12 @@ class Courses {
   }
 
   addCourseStudent(courseID, studentID) {
-    const student = this.users.fetchSingleUser("", studentID, "Student");
-
+    let student = this.users.users.find(
+          u => u.role === "Student" && u.id == parseInt(studentID)
+      );
+    console.log(courseID, studentID,student, this.users.users );
     if (student === null) return null;
-    for (const course of this.courses) {
+    for (let course of this.courses) {
       if (course.id === parseInt(courseID)) {
         if (course.students === undefined) {
           course.students = [student];
@@ -443,6 +449,7 @@ class Assignment {
     if (course === null) return null;
     const new_assignment = { id: this.nextID, name: name, course: course };
     this.assignments.push(new_assignment);
+    course.assignments.push(new_assignment);
     this.nextID++;
     return new_assignment;
   }
@@ -457,6 +464,10 @@ class Assignment {
       }
     }
     return null;
+  }
+
+  getAssignmentByCourseId(courseId){
+    return this.assignments.filter( e => e.course.id === courseId);
   }
 }
 
@@ -482,6 +493,10 @@ class AssignmentGrade {
       grade: grade
     };
     this.assignment_grades.push(new_assignment_grade);
+    if(student.assignmentGrades === undefined){
+        student.assignmentGrades=[]
+    }
+    student.assignmentGrades.push(new_assignment_grade);
     this.nextID++;
     return new_assignment_grade;
   }
@@ -597,17 +612,16 @@ const resolvers = {
   },
   Student: {
     courses: student => {
-      console.log("courses called");
-      console.log(student);
-      return [{ id: 0, name: "course" }];
+      return  student.courses === undefined || student.courses ==null ? [] : student.courses ;
     }
   },
   Course: {
     professor: course => {
-      console.log("course professor");
-      return users.get(2);
+      return users.users.find(
+          u => u.role === "Faculty" && u.id == course.facultyId);
     }
   }
+
 };
 
 const getUserForToken = token => {
