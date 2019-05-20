@@ -649,8 +649,8 @@ const server = new ApolloServer({
   resolvers,
   context: request => {
     return request;
-  }
-});
+  },
+
 // enable playground even in production
   introspection: true,
   playground: true,
