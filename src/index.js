@@ -649,18 +649,9 @@ const server = new ApolloServer({
   resolvers,
   context: request => {
     return request;
-  },
-
-// enable playground even in production
-  introspection: true,
-  playground: true,
+  }
 });
 
-const PORT = process.env.PORT || 4000;
-
-server.listen({ port: PORT }).then(({ url }) => {
+server.listen().then(({ url }) => {
   console.log(`🚀 Server ready at ${url}`);
-
-//server.listen().then(({ url }) => {
-  //console.log(`🚀 Server ready at ${url}`);
 });
